@@ -72,6 +72,15 @@ npm run dev    # Start server
 ```bash
 cd frontend
 npm install
+```
+
+Create a `.env` file:
+
+```env
+VITE_API_URL=http://localhost:3000/api
+```
+
+```bash
 npm run dev    # http://localhost:5173
 ```
 
