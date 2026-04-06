@@ -19,6 +19,7 @@ const search = ref('')
 const selectedCategory = ref('')
 const pageLoading = ref(true)
 const productsLoading = ref(false)
+const showProducts = ref(false)
 const minPrice = ref(0)
 const maxPrice = ref(500)
 const cart = useCartStore()
@@ -51,19 +52,22 @@ async function fetchProducts() {
 async function loadInitialData() {
   pageLoading.value = true
   try {
-    const [productsRes, categoriesRes, topRes] = await Promise.all([
-      api.get('/products'),
+    const [categoriesRes, topRes] = await Promise.all([
       api.get('/products/categories'),
       api.get('/products/top-selling')
     ])
-    products.value = productsRes.data
     categories.value = categoriesRes.data
     topProducts.value = topRes.data.slice(0, 3)
   } catch {
-    toastError('Failed to load products')
+    toastError('Failed to load data')
   } finally {
     pageLoading.value = false
   }
+}
+
+async function revealProducts() {
+  showProducts.value = true
+  await fetchProducts()
 }
 
 function addToCart(product) {
@@ -132,23 +136,10 @@ onMounted(loadInitialData)
         </div>
       </div>
 
-      <!-- Products skeleton -->
+      <!-- All Products placeholder skeleton -->
       <div>
-        <div class="flex justify-between mb-6">
-          <div><div class="skeleton h-8 w-40 mb-2"></div><div class="skeleton h-4 w-28"></div></div>
-        </div>
-        <div class="skeleton h-28 w-full rounded-2xl mb-8"></div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <div v-for="i in 8" :key="i" class="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div class="skeleton h-52 w-full"></div>
-            <div class="p-4 space-y-3">
-              <div class="skeleton h-4 w-20"></div>
-              <div class="skeleton h-5 w-3/4"></div>
-              <div class="skeleton h-4 w-1/2"></div>
-              <div class="flex justify-between"><div class="skeleton h-6 w-16"></div><div class="skeleton h-9 w-24 rounded-xl"></div></div>
-            </div>
-          </div>
-        </div>
+        <div class="skeleton h-8 w-40 mb-6"></div>
+        <div class="skeleton h-48 w-full rounded-2xl"></div>
       </div>
     </div>
 
@@ -238,119 +229,137 @@ onMounted(loadInitialData)
         <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
           <div>
             <h2 class="text-2xl sm:text-3xl font-extrabold text-gray-900">All Products</h2>
-            <p class="text-gray-500 text-sm mt-1">{{ filteredCount }} products found</p>
+            <p v-if="showProducts" class="text-gray-500 text-sm mt-1">{{ filteredCount }} products found</p>
           </div>
         </div>
 
-        <!-- Filters Bar -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <!-- Search -->
-            <div class="md:col-span-1">
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Search</label>
-              <div class="relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                <input v-model="search" type="text" placeholder="Search products..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm bg-gray-50 hover:bg-white focus:bg-white" />
-              </div>
-            </div>
-
-            <!-- Category -->
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
-              <select v-model="selectedCategory" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm bg-gray-50 hover:bg-white focus:bg-white transition-all appearance-none cursor-pointer">
-                <option value="">All Categories</option>
-                <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-              </select>
-            </div>
-
-            <!-- Price Range Min -->
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Min Price: ${{ minPrice }}</label>
-              <input type="range" :value="minPrice" min="0" :max="500" step="5" @input="onMinPriceChange" class="w-full" />
-            </div>
-
-            <!-- Price Range Max -->
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Max Price: ${{ maxPrice }}</label>
-              <input type="range" :value="maxPrice" min="0" :max="500" step="5" @input="onMaxPriceChange" class="w-full" />
-            </div>
+        <!-- "See Products" CTA before products are revealed -->
+        <div v-if="!showProducts" class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm animate-fade-in">
+          <div class="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
           </div>
-
-          <!-- Active Filters Tags -->
-          <div v-if="search || selectedCategory || minPrice > 0 || maxPrice < 500" class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
-            <span v-if="search" class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
-              Search: "{{ search }}"
-              <button @click="search = ''" class="hover:text-indigo-900 ml-1">✕</button>
+          <h3 class="text-xl font-bold text-gray-800 mb-2">Browse Our Full Catalog</h3>
+          <p class="text-gray-400 mb-6 max-w-md mx-auto">Explore all products with search, category filters, and price range options</p>
+          <button @click="revealProducts" class="btn-primary py-3 px-10 text-base">
+            <span class="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+              See Products
             </span>
-            <span v-if="selectedCategory" class="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
-              {{ selectedCategory }}
-              <button @click="selectedCategory = ''" class="hover:text-purple-900 ml-1">✕</button>
-            </span>
-            <span v-if="minPrice > 0 || maxPrice < 500" class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
-              ${{ minPrice }} – ${{ maxPrice }}
-              <button @click="resetPriceRange()" class="hover:text-emerald-900 ml-1">✕</button>
-            </span>
-            <button @click="search = ''; selectedCategory = ''; resetPriceRange()" class="text-xs text-red-500 hover:text-red-700 font-medium px-2">Clear All</button>
-          </div>
+          </button>
         </div>
 
-        <!-- Loading Spinner for products filter -->
-        <div v-if="productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <div v-for="i in 8" :key="i" class="bg-white rounded-2xl overflow-hidden shadow-sm">
-            <div class="skeleton h-52 w-full"></div>
-            <div class="p-4 space-y-3">
-              <div class="skeleton h-4 w-20"></div>
-              <div class="skeleton h-5 w-3/4"></div>
-              <div class="skeleton h-4 w-1/2"></div>
-              <div class="flex justify-between">
-                <div class="skeleton h-6 w-16"></div>
-                <div class="skeleton h-9 w-24 rounded-xl"></div>
+        <!-- Products revealed -->
+        <template v-else>
+          <!-- Filters Bar -->
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8 animate-fade-in-up">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <!-- Search -->
+              <div class="md:col-span-1">
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Search</label>
+                <div class="relative">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input v-model="search" type="text" placeholder="Search products..." class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-sm bg-gray-50 hover:bg-white focus:bg-white" />
+                </div>
+              </div>
+
+              <!-- Category -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Category</label>
+                <select v-model="selectedCategory" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm bg-gray-50 hover:bg-white focus:bg-white transition-all appearance-none cursor-pointer">
+                  <option value="">All Categories</option>
+                  <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                </select>
+              </div>
+
+              <!-- Price Range Min -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Min Price: ${{ minPrice }}</label>
+                <input type="range" :value="minPrice" min="0" :max="500" step="5" @input="onMinPriceChange" class="w-full" />
+              </div>
+
+              <!-- Price Range Max -->
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Max Price: ${{ maxPrice }}</label>
+                <input type="range" :value="maxPrice" min="0" :max="500" step="5" @input="onMaxPriceChange" class="w-full" />
+              </div>
+            </div>
+
+            <!-- Active Filters Tags -->
+            <div v-if="search || selectedCategory || minPrice > 0 || maxPrice < 500" class="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-100">
+              <span v-if="search" class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
+                Search: "{{ search }}"
+                <button @click="search = ''" class="hover:text-indigo-900 ml-1">✕</button>
+              </span>
+              <span v-if="selectedCategory" class="inline-flex items-center gap-1 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium">
+                {{ selectedCategory }}
+                <button @click="selectedCategory = ''" class="hover:text-purple-900 ml-1">✕</button>
+              </span>
+              <span v-if="minPrice > 0 || maxPrice < 500" class="inline-flex items-center gap-1 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium">
+                ${{ minPrice }} – ${{ maxPrice }}
+                <button @click="resetPriceRange()" class="hover:text-emerald-900 ml-1">✕</button>
+              </span>
+              <button @click="search = ''; selectedCategory = ''; resetPriceRange()" class="text-xs text-red-500 hover:text-red-700 font-medium px-2">Clear All</button>
+            </div>
+          </div>
+
+          <!-- Loading Skeleton for products -->
+          <div v-if="productsLoading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-for="i in 8" :key="i" class="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <div class="skeleton h-52 w-full"></div>
+              <div class="p-4 space-y-3">
+                <div class="skeleton h-4 w-20"></div>
+                <div class="skeleton h-5 w-3/4"></div>
+                <div class="skeleton h-4 w-1/2"></div>
+                <div class="flex justify-between">
+                  <div class="skeleton h-6 w-16"></div>
+                  <div class="skeleton h-9 w-24 rounded-xl"></div>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Products Grid -->
-        <div v-else-if="products.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <div v-for="(product, index) in products" :key="product.id"
-            class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-fade-in-up"
-            :style="{ animationDelay: `${index * 0.05}s` }">
-            <div class="relative overflow-hidden group cursor-pointer" @click="router.push(`/products/${product.id}`)">
-              <img :src="product.image_url" :alt="product.name" class="product-image w-full h-52 object-cover" />
-              <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end">
-                <p class="text-white text-sm p-4 line-clamp-2">{{ product.description }}</p>
+          <!-- Products Grid -->
+          <div v-else-if="products.length" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div v-for="(product, index) in products" :key="product.id"
+              class="product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-fade-in-up"
+              :style="{ animationDelay: `${index * 0.05}s` }">
+              <div class="relative overflow-hidden group cursor-pointer" @click="router.push(`/products/${product.id}`)">
+                <img :src="product.image_url" :alt="product.name" class="product-image w-full h-52 object-cover" />
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end">
+                  <p class="text-white text-sm p-4 line-clamp-2">{{ product.description }}</p>
+                </div>
+                <span v-if="product.stock <= 5 && product.stock > 0" class="absolute top-3 right-3 px-2 py-1 bg-orange-500 text-white text-[10px] font-bold rounded-full shadow-lg">Only {{ product.stock }} left</span>
+                <span v-if="product.stock <= 0" class="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-lg">Sold Out</span>
               </div>
-              <span v-if="product.stock <= 5 && product.stock > 0" class="absolute top-3 right-3 px-2 py-1 bg-orange-500 text-white text-[10px] font-bold rounded-full shadow-lg">Only {{ product.stock }} left</span>
-              <span v-if="product.stock <= 0" class="absolute top-3 right-3 px-2 py-1 bg-red-500 text-white text-[10px] font-bold rounded-full shadow-lg">Sold Out</span>
-            </div>
-            <div class="p-4">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">{{ product.category }}</span>
-              </div>
-              <h3 class="font-bold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors leading-tight" @click="router.push(`/products/${product.id}`)">{{ product.name }}</h3>
-              <div class="flex items-center gap-1.5 mt-1.5">
-                <StarRating :rating="Number(product.avg_rating)" size="h-3.5 w-3.5" />
-                <span class="text-[11px] text-gray-400 font-medium">({{ product.review_count }})</span>
-              </div>
-              <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
-                <span class="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">${{ Number(product.price).toFixed(2) }}</span>
-                <button @click="addToCart(product)" class="btn-primary text-xs py-2 px-3" :disabled="product.stock <= 0">
-                  <span>{{ product.stock > 0 ? '+ Add' : 'Sold Out' }}</span>
-                </button>
+              <div class="p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wider">{{ product.category }}</span>
+                </div>
+                <h3 class="font-bold text-gray-900 cursor-pointer hover:text-indigo-600 transition-colors leading-tight" @click="router.push(`/products/${product.id}`)">{{ product.name }}</h3>
+                <div class="flex items-center gap-1.5 mt-1.5">
+                  <StarRating :rating="Number(product.avg_rating)" size="h-3.5 w-3.5" />
+                  <span class="text-[11px] text-gray-400 font-medium">({{ product.review_count }})</span>
+                </div>
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+                  <span class="text-xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">${{ Number(product.price).toFixed(2) }}</span>
+                  <button @click="addToCart(product)" class="btn-primary text-xs py-2 px-3" :disabled="product.stock <= 0">
+                    <span>{{ product.stock > 0 ? '+ Add' : 'Sold Out' }}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Empty State -->
-        <div v-else class="text-center py-20 animate-fade-in">
-          <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <!-- Empty State (after filter returns nothing) -->
+          <div v-else class="text-center py-20 animate-fade-in">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <p class="text-xl font-semibold text-gray-700">No products found</p>
+            <p class="text-gray-400 mt-1">Try adjusting your search or filters</p>
+            <button @click="search = ''; selectedCategory = ''; resetPriceRange()" class="mt-4 btn-primary text-sm"><span>Reset Filters</span></button>
           </div>
-          <p class="text-xl font-semibold text-gray-700">No products found</p>
-          <p class="text-gray-400 mt-1">Try adjusting your search or filters</p>
-          <button @click="search = ''; selectedCategory = ''; resetPriceRange()" class="mt-4 btn-primary text-sm"><span>Reset Filters</span></button>
-        </div>
+        </template>
       </div>
     </template>
   </div>
