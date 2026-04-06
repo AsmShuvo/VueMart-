@@ -2,6 +2,8 @@
 
 A full-stack e-commerce application with an admin dashboard.
 
+🔗 **[Live Demo](https://client-vuemart.vercel.app)**
+
 ![Vue.js](https://img.shields.io/badge/Vue_3-4FC08D?style=flat&logo=vuedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=flat&logo=express&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white)
